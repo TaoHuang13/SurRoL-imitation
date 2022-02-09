@@ -1,0 +1,55 @@
+INFO - train_rl - Running command 'train_rl'
+INFO - train_rl - Started run with ID "1"
+INFO - imitation.scripts.common.common - Logging to quickstart/rl/
+INFO - imitation.scripts.common.rl - RL algorithm: <class 'stable_baselines3.ppo.ppo.PPO'>
+INFO - imitation.scripts.common.rl - Policy network summary:
+ FeedForward32Policy(
+  (features_extractor): FlattenExtractor(
+    (flatten): Flatten(start_dim=1, end_dim=-1)
+  )
+  (mlp_extractor): MlpExtractor(
+    (shared_net): Sequential(
+      (0): Linear(in_features=3, out_features=32, bias=True)
+      (1): Tanh()
+      (2): Linear(in_features=32, out_features=32, bias=True)
+      (3): Tanh()
+    )
+    (policy_net): Sequential()
+    (value_net): Sequential()
+  )
+  (action_net): Linear(in_features=32, out_features=1, bias=True)
+  (value_net): Linear(in_features=32, out_features=1, bias=True)
+)
+INFO - root - Saved policy to quickstart/rl/policies/000000000002
+---------------------------
+| time/              |    |
+|    fps             | 86 |
+|    iterations      | 1  |
+|    time_elapsed    | 0  |
+|    total_timesteps | 2  |
+---------------------------
+INFO - root - Saved policy to quickstart/rl/policies/000000000004
+------------------------------------------
+| time/                   |              |
+|    fps                  | 53           |
+|    iterations           | 2            |
+|    time_elapsed         | 0            |
+|    total_timesteps      | 4            |
+| train/                  |              |
+|    approx_kl            | 0.0038872361 |
+|    clip_fraction        | 0            |
+|    clip_range           | 0.2          |
+|    entropy_loss         | -1.42        |
+|    explained_variance   | 0.607        |
+|    learning_rate        | 0.0003       |
+|    loss                 | 35.3         |
+|    n_updates            | 10           |
+|    policy_gradient_loss | -0.0288      |
+|    std                  | 0.997        |
+|    value_loss           | 71.1         |
+------------------------------------------
+INFO - root - Rollout stats: {'n_traj': 400, 'return_min': -48.80287587894704, 'return_mean': -17.930229203504197, 'return_std': 14.763831846092742, 'return_max': -0.027449482211677412, 'len_min': 5, 'len_mean': 5.0, 'len_std': 0.0, 'len_max': 5}
+INFO - root - Dumped demonstrations to quickstart/rl/rollouts/final.pkl.
+INFO - root - Saved policy to quickstart/rl/policies/final
+INFO - train_rl - Result: {'n_traj': 2, 'monitor_return_len': 2, 'return_min': -2.6312147676944733, 'return_mean': -2.5162791907787323, 'return_std': 0.11493557691574097, 'return_max': -2.4013436138629913, 'len_min': 5, 'len_mean': 5.0, 'len_std': 0.0, 'len_max': 5, 'monitor_return_min': -28.588952, 'monitor_return_mean': -27.340037, 'monitor_return_std': 1.2489150000000002, 'monitor_return_max': -26.091122}
+INFO - train_rl - Completed after 0:00:01

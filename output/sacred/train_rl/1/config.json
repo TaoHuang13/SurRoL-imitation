@@ -1,0 +1,47 @@
+{
+  "__doc__": "Intended for testing purposes: small # of updates, ends quickly.",
+  "common": {
+    "env_make_kwargs": {},
+    "env_name": "Pendulum-v0",
+    "log_dir": "quickstart/rl/",
+    "log_format_strs": [
+      "tensorboard",
+      "stdout"
+    ],
+    "log_level": 20,
+    "log_root": null,
+    "max_episode_steps": 5,
+    "num_vec": 2,
+    "parallel": false
+  },
+  "normalize": true,
+  "normalize_kwargs": {},
+  "policy_save_final": true,
+  "policy_save_interval": 2,
+  "reward_path": null,
+  "reward_type": null,
+  "rl": {
+    "batch_size": 2,
+    "rl_cls": {
+      "py/type": "stable_baselines3.ppo.ppo.PPO"
+    },
+    "rl_kwargs": {
+      "batch_size": 2,
+      "ent_coef": 0.0,
+      "learning_rate": 0.0003,
+      "n_epochs": 10
+    }
+  },
+  "rollout_save_final": true,
+  "rollout_save_n_episodes": null,
+  "rollout_save_n_timesteps": 2000,
+  "seed": 708336090,
+  "total_timesteps": 4,
+  "train": {
+    "n_episodes_eval": 1,
+    "policy_cls": {
+      "py/type": "imitation.policies.base.FeedForward32Policy"
+    },
+    "policy_kwargs": {}
+  }
+}

@@ -105,6 +105,7 @@ class TrajectoryAccumulator:
         rews: np.ndarray,
         dones: np.ndarray,
         infos: List[dict],
+        is_surrol: bool = False,
     ) -> List[types.TrajectoryWithRew]:
         """Calls `add_step` repeatedly using acts and the returns from `venv.step`.
 
@@ -139,7 +140,7 @@ class TrajectoryAccumulator:
                 # When dones[i] from VecEnv.step() is True, obs[i] is the first
                 # observation following reset() of the ith VecEnv, and
                 # infos[i]["terminal_observation"] is the actual final observation.
-                real_ob = info["terminal_observation"]
+                real_ob = ob if is_surrol else info["terminal_observation"]
             else:
                 real_ob = ob
 

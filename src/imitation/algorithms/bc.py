@@ -238,7 +238,7 @@ class BC(algo_base.DemonstrationAlgorithm):
         self.device = utils.get_device(device)
 
         if policy is None:
-            policy = policy_base.FeedForward32Policy(
+            policy = policies.ActorCriticCnnPolicy(
                 observation_space=observation_space,
                 action_space=action_space,
                 # Set lr_schedule to max value to force error if policy.optimizer
@@ -287,7 +287,10 @@ class BC(algo_base.DemonstrationAlgorithm):
             stats_dict: Statistics about the learning process to be logged.
 
         """
-        obs = th.as_tensor(obs, device=self.device).detach()
+        if obs.shape != self.observation_space.shape:
+            obs = th.as_tensor(obs, device=self.device).detach().permute(0, 3, 1, 2)
+        else:
+            obs = th.as_tensor(obs, device=self.device).detach()
         acts = th.as_tensor(acts, device=self.device).detach()
 
         _, log_prob, entropy = self.policy.evaluate_actions(obs, acts)

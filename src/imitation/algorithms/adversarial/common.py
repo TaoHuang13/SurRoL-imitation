@@ -508,6 +508,9 @@ class AdversarialTrainer(base.DemonstrationAlgorithm[types.Transitions]):
         assert n_gen == len(gen_samples["next_obs"])
 
         # Concatenate rollouts, and label each row as expert or generator.
+        expert_samples["obs"] = np.transpose(expert_samples["obs"], (0, 3, 1 ,2))
+        expert_samples["next_obs"] = np.transpose(expert_samples["next_obs"], (0, 3, 1, 2))
+
         obs = np.concatenate([expert_samples["obs"], gen_samples["obs"]])
         acts = np.concatenate([expert_samples["acts"], gen_samples["acts"]])
         next_obs = np.concatenate([expert_samples["next_obs"], gen_samples["next_obs"]])

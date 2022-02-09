@@ -42,6 +42,7 @@ def make_vec_env(
     max_episode_steps: Optional[int] = None,
     post_wrappers: Optional[Sequence[Callable[[gym.Env, int], gym.Env]]] = None,
     env_make_kwargs: Optional[Mapping[str, Any]] = None,
+    visual: bool = False,
 ) -> VecEnv:
     """Makes a vectorized environment.
 
@@ -105,6 +106,9 @@ def make_vec_env(
         if post_wrappers:
             for wrapper in post_wrappers:
                 env = wrapper(env, i)
+        
+        if visual:
+            env = VisualWrapper(env)
 
         return env
 
@@ -188,3 +192,26 @@ def tensor_iter_norm(
     # = sum(x**ord for x in tensor for tensor in tensor_iter)**(1/ord)
     # = th.norm(concatenated tensors)
     return th.norm(norm_tensor, p=ord)
+
+
+class VisualWrapper(gym.Wrapper):
+    def __init__(
+        self,
+        env: gym.Env,
+    ):
+        super().__init__(env)
+        img = self.env.render('rgb_array')
+        obs_shape = list(img.shape)
+        obs_shape[1:] = obs_shape[0:2]
+        obs_shape[0] = 3
+        self.observation_space = gym.spaces.Box(0, 255, shape=obs_shape, dtype='uint8')
+
+    def reset(self):
+        obs = self.env.reset()
+        img = self.env.render('rgb_array').transpose(2, 0, 1)
+        return img
+
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        img = self.env.render('rgb_array').transpose(2, 0, 1)
+        return img, reward, done, info
