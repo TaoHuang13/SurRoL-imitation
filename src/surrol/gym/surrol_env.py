@@ -11,6 +11,7 @@ import pkgutil
 from surrol.utils.pybullet_utils import (
     step,
     render_image,
+    render_image_depth
 )
 import numpy as np
 
@@ -148,10 +149,12 @@ class SurRoLEnv(gym.Env):
         if mode == "human":
             return np.array([])
         # TODO: check the way to render image
-        rgb_array, mask = render_image(RENDER_WIDTH, RENDER_HEIGHT,
+        rgbd_array = render_image_depth(RENDER_WIDTH, RENDER_HEIGHT,
                                        self._view_matrix, self._proj_matrix)
         if mode == 'rgb_array':
-            return rgb_array
+            return rgbd_array[:,:,:3]
+        if mode == 'rgbd_array':
+            return rgbd_array
         else:
             return rgb_array, mask
 

@@ -72,7 +72,7 @@ log_root = os.path.join("output", "eval_policy")  # output directory
 policy_type = "ppo"  # class to load policy, see imitation.policies.loader ppo
 policy_path = (
     #"/home/zhaoogroup/code/tao_huang/SurRoL-imitation/GAIL/checkpoints/00200/gen_policy/",
-    "/home/zhaoogroup/code/tao_huang/SurRoL-imitation-main/log/policy/BC_" + env_name + "_cnn_100.pt"
+    "/home/zhaoogroup/code/tao_huang/SurRoL-imitation-main/log/policy/BC_" + env_name + "_cnn_100_rgbd_fixed.pt"
 )  # serialized policy
 
 
@@ -106,7 +106,7 @@ try:
                                                     deterministic_policy=True)
     
     folder = '/home/zhaoogroup/code/tao_huang/SurRoL-imitation-main'
-    video_name = 'video_' + env_name + '_cnn_100.mp4'
+    video_name = 'video_' + env_name + '_cnn_100_rgbd_fixed.mp4'
     writer = imageio.get_writer(os.path.join(folder, video_name), fps=10)
     
     for traj in trajectories:

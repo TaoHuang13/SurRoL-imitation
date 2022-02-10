@@ -858,3 +858,40 @@ def render_image(width, height, view_matrix, proj_matrix, shadow=1):
 
     rgb_array = rgb_array[:, :, :3]
     return rgb_array, mask
+
+def render_image_depth(width, height, view_matrix, proj_matrix, shadow=1):
+    (_, _, px, dx, mask) = p.getCameraImage(width=width,
+                                           height=height,
+                                           viewMatrix=view_matrix,
+                                           projectionMatrix=proj_matrix,
+                                           shadow=shadow,
+                                           lightDirection=(10, 0, 10),
+                                           renderer=p.ER_BULLET_HARDWARE_OPENGL)
+
+    rgb_array = np.array(px, dtype=np.uint8)
+    rgb_array = np.reshape(rgb_array, (height, width, 4))
+
+    depth_buffer = np.array(dx)
+    # print(depth_buffer)
+    depth_buffer = np.reshape(dx,(height,width,1))
+    inf_inds = (depth_buffer == 1.0)
+    depth_buffer = 2 * depth_buffer - 1
+
+    # far = 500
+    # near = 0.005
+
+    far = 10
+    near = 0.01
+
+    # depth = far*near/(far-(far-near)*depth_buffer)
+    depth = 2.0 * near * far / (far + near - depth_buffer * (far - near))
+    # print('depth max',np.max(depth))
+    # print('depth min', np.min(depth))
+
+    #depth_array = np.array(depth*10000., dtype=np.uint16)
+    depth_array = np.array(depth*1000, dtype=np.uint16)
+    depth_array = np.clip(depth_array, 0, 255)
+    depth_array = np.array(depth_array, dtype=np.uint8)
+
+    rgb_array = rgb_array[:, :, :3]
+    return np.concatenate((rgb_array, depth_array), axis=2, dtype=np.uint8)

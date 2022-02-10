@@ -33,19 +33,19 @@ import imageio
 env_name = 'NeedlePick-v0'
 
 root_dir = "/home/zhaoogroup/code/tao_huang/SurRoL-imitation-main"
-rollout_path = os.path.join(root_dir, "data/train_rollout_" + env_name + "_100x_rgb.pkl") # train_rollout_400x
+rollout_path = os.path.join(root_dir, "data/train_rollout_" + env_name + "_100x_rgbd_fixed.pkl") # train_rollout_400x
 # Load pickled test demonstrations.
 # with open("/home/curl/CUHK/Projects/RL/stable-baselines3-imitation/src/imitation/scripts/rollout_1x.pkl", "rb") as f:
 with open(rollout_path, "rb") as f:
     trajectories = pickle.load(f)
 
-# folder = '/home/zhaoogroup/code/tao_huang/SurRoL-imitation-main'
-# video_name = 'demo_peg.mp4'
-# writer = imageio.get_writer(os.path.join(folder, video_name), fps=10)
-# for traj in trajectories:
-#     for img in traj.obs:
-#         writer.append_data(img)
-# writer.close()
+folder = '/home/zhaoogroup/code/tao_huang/SurRoL-imitation-main'
+video_name = 'demo_pick_rdgd.mp4'
+writer = imageio.get_writer(os.path.join(folder, video_name), fps=10)
+for traj in trajectories:
+    for img in traj.obs:
+        writer.append_data(img[:,:,3])
+writer.close()
 
 transitions = rollout.flatten_trajectories(trajectories)
 
@@ -71,4 +71,4 @@ bc_trainer = bc.BC(
 bc_trainer.train(n_epochs=100)
 end = time.time()
 print("BC training time: ", end - start)
-bc_trainer.save_policy(os.path.join(root_dir, "log/policy/BC_" + env_name + "_cnn_100.pt"))
+bc_trainer.save_policy(os.path.join(root_dir, "log/policy/BC_" + env_name + "_cnn_100_rgbd_fixed.pt"))

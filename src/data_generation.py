@@ -25,7 +25,7 @@ parser.add_argument('--steps', type=int,
                     help='how many steps allowed to run')
 args = parser.parse_args()
 
-rollout_save_path = "/home/zhaoogroup/code/tao_huang/SurRoL-imitation-main/data/train_rollout_" + args.env + "_100x_rgb.pkl"
+rollout_save_path = "/home/zhaoogroup/code/tao_huang/SurRoL-imitation-main/data/train_rollout_" + args.env + "_100x_rgb_fixed_test.pkl"
 
 def main():
     env = gym.make(args.env, render_mode='human')  # 'human'     

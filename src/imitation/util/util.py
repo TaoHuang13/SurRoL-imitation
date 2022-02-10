@@ -200,18 +200,23 @@ class VisualWrapper(gym.Wrapper):
         env: gym.Env,
     ):
         super().__init__(env)
-        img = self.env.render('rgb_array')
+        self.render_mode = 'rgbd_array'
+        img = self.env.render(self.render_mode)
         obs_shape = list(img.shape)
         obs_shape[1:] = obs_shape[0:2]
-        obs_shape[0] = 3
+
+        if self.render_mode == 'rgbd_array':
+            obs_shape[0] = 4
+        else:
+            obs_shape[0] = 3
         self.observation_space = gym.spaces.Box(0, 255, shape=obs_shape, dtype='uint8')
 
     def reset(self):
         obs = self.env.reset()
-        img = self.env.render('rgb_array').transpose(2, 0, 1)
+        img = self.env.render(self.render_mode).transpose(2, 0, 1)
         return img
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
-        img = self.env.render('rgb_array').transpose(2, 0, 1)
+        img = self.env.render(self.render_mode).transpose(2, 0, 1)
         return img, reward, done, info
