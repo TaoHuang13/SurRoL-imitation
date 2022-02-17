@@ -5,7 +5,7 @@ import torch.nn as nn
 from TransformLayer import ColorJitterLayer
 
 
-def random_crop(imgs, out=84):
+def random_crop(imgs, out=(112, 144)):
     """
         args:
         imgs: np.array shape (B,C,H,W)
@@ -13,13 +13,13 @@ def random_crop(imgs, out=84):
         returns np.array
     """
     n, c, h, w = imgs.shape
-    crop_max = h - out + 1
+    crop_max = h - out[0] + 1
     w1 = np.random.randint(0, crop_max, n)
     h1 = np.random.randint(0, crop_max, n)
-    cropped = np.empty((n, c, out, out), dtype=imgs.dtype)
+    cropped = np.empty((n, c, out[0], out[1]), dtype=imgs.dtype)
     for i, (img, w11, h11) in enumerate(zip(imgs, w1, h1)):
 
-        cropped[i] = img[:, h11:h11 + out, w11:w11 + out]
+        cropped[i] = img[:, h11:h11 + out[0], w11:w11 + out[1]]
     return cropped
 
 

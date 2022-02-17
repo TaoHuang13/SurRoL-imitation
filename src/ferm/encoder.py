@@ -25,7 +25,6 @@ class PixelEncoder(nn.Module):
         self.dual_cam = obs_shape[0] == 6
         self.feature_dim = feature_dim
         self.num_layers = num_layers
-
         self.two_conv = two_conv
         if not self.two_conv:
             self.convs = nn.ModuleList(
@@ -42,13 +41,14 @@ class PixelEncoder(nn.Module):
 
         x = torch.randn([32] + list(obs_shape))
         self.outputs = dict()
+        #out_dim = self.forward_conv(x, flatten=False).shape[-1]
+        out_dim = self.forward_conv(x, flatten=False).shape[-2:]
 
-        out_dim = self.forward_conv(x, flatten=False).shape[-1]
         # out_dim = OUT_DIM_64[num_layers] if obs_shape[-1] == 64 else OUT_DIM[num_layers]
         if self.two_conv:
             self.fc = nn.Linear(2 * num_filters * out_dim * out_dim, self.feature_dim)
         else:
-            self.fc = nn.Linear(num_filters * out_dim * out_dim, self.feature_dim)
+            self.fc = nn.Linear(num_filters * out_dim[0] * out_dim[1], self.feature_dim)
         self.ln = nn.LayerNorm(self.feature_dim)
 
         self.output_logits = output_logits
@@ -59,7 +59,6 @@ class PixelEncoder(nn.Module):
         return mu + eps * std
 
     def forward_conv(self, obs, flatten=True):
-
         if obs.max() > 1.:
             obs = obs / 255.
         self.outputs['obs'] = obs
@@ -164,7 +163,7 @@ class PixelEncoder(nn.Module):
 class IdentityEncoder(nn.Module):
     def __init__(self, obs_shape, feature_dim, num_layers, num_filters, *args, two_conv=False):
         super().__init__()
-
+        print(obs_shape)
         assert len(obs_shape) == 1
         self.feature_dim = obs_shape[0]
 

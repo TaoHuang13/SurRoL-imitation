@@ -189,8 +189,8 @@ class ReplayBuffer(Dataset):
             for aug, func in aug_funcs.items():
                 # apply crop and cutout first
                 if 'crop' in aug or 'cutout' in aug:
-                    obses = func(obses)
-                    next_obses = func(next_obses)
+                    obses = func(obses, self.image_size)
+                    next_obses = func(next_obses, self.image_size)
 
                 if 'translate' in aug:
                     obses, tw, th = func(obses)
@@ -211,8 +211,8 @@ class ReplayBuffer(Dataset):
                 # skip crop and cutout augs
                 if 'crop' in aug or 'cutout' in aug or 'translate' in aug:
                     continue
-                obses = func(obses)
-                next_obses = func(next_obses)
+                obses = func(obses, self.image_size)
+                next_obses = func(next_obses, self.image_size)
 
         if self.hybrid_states is not None:
             hybrid_obses = torch.as_tensor(self.hybrid_states[idxs], device=self.device).float()
@@ -296,7 +296,8 @@ class FrameStack(gym.Wrapper):
         self.special_reset_save = None
 
     def reset(self, save_special_steps=False):
-        obs = self.env.reset(save_special_steps=save_special_steps)
+        #obs = self.env.reset(save_special_steps=save_special_steps)
+        obs = self.env.reset()
         if save_special_steps:
             self.unpack_special_steps()
         if isinstance(obs, list):
@@ -348,14 +349,14 @@ def random_crop(imgs, output_size):
     """
     # batch size
     n = imgs.shape[0]
-    img_size = imgs.shape[-1]
-    crop_max = img_size - output_size
+    img_size_h, img_size_w = imgs.shape[-2:]
+    crop_max = img_size_h - output_size[0]
     imgs = np.transpose(imgs, (0, 2, 3, 1))
     w1 = np.random.randint(0, crop_max, n)
     h1 = np.random.randint(0, crop_max, n)
     # creates all sliding windows combinations of size (output_size)
     windows = view_as_windows(
-        imgs, (1, output_size, output_size, 1))[..., 0, :, :, 0]
+        imgs, (1, output_size[0], output_size[1], 1))[..., 0, :, :, 0]
     # selects a random window for each batch element
     cropped_imgs = windows[np.arange(n), w1, h1]
     return cropped_imgs
@@ -363,8 +364,8 @@ def random_crop(imgs, output_size):
 
 def center_crop_image(image, output_size):
     h, w = image.shape[1:]
-    if h > output_size: #center cropping
-        new_h, new_w = output_size, output_size
+    if h > output_size[0]: #center cropping
+        new_h, new_w = output_size[0], output_size[1]
 
         top = (h - new_h) // 2
         left = (w - new_w) // 2
@@ -372,8 +373,8 @@ def center_crop_image(image, output_size):
         image = image[:, top:top + new_h, left:left + new_w]
         return image
     else: #center translate
-        new_image = np.zeros((image.shape[0], output_size, output_size))
+        new_image = np.zeros((image.shape[0], output_size[0], output_size[1]))
         shift = output_size - h
         shift = shift // 2
-        new_image[:, shift:shift + h, shift:shift+w] = image
+        new_image[:, shift:shift+h, shift:shift+w] = image
         return new_image

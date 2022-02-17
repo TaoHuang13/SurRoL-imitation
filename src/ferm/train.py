@@ -25,7 +25,7 @@ def parse_args():
     # environment
     parser.add_argument('--domain_name', default='cheetah')
     parser.add_argument('--task_name', default=None)
-    parser.add_argument('--pre_transform_image_size', default=100, type=int)
+    parser.add_argument('--pre_transform_image_size', default=(120,160), type=tuple)
     parser.add_argument('--cameras', nargs='+', default=[0], type=int)
     parser.add_argument('--observation_type', default='pixel')
     parser.add_argument('--reward_type', default='dense')
@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument('--change_model', default=False, action='store_true')
     parser.add_argument('--synch_update', default=False, action='store_true')
 
-    parser.add_argument('--image_size', default=84, type=int)
+    parser.add_argument('--image_size', default=(100,160), type=tuple)
     parser.add_argument('--action_repeat', default=1, type=int)
     parser.add_argument('--frame_stack', default=3, type=int)
     parser.add_argument('--num_updates', default=1, type=int)
@@ -46,6 +46,7 @@ def parse_args():
     parser.add_argument('--demo_model_dir', default=None, type=str)
     parser.add_argument('--demo_model_step', default=0, type=int)
     parser.add_argument('--demo_samples', default=25000, type=int)
+    parser.add_argument('--demo_surrol', default=True, action='store_true')
     parser.add_argument('--demo_special_reset', default=None, type=str)
     parser.add_argument('--success_demo_only', default=False, action='store_true')
     parser.add_argument('--bc_only', default=False, action='store_true')
@@ -262,32 +263,83 @@ def main():
         args.__dict__["seed"] = np.random.randint(1, 1000000)
     exp_id = str(int(np.random.random() * 100000))
     utils.set_seed_everywhere(args.seed)
+    args.pre_transform_image_size = (128, 160)
+    args.image_size = (112, 144)
 
-    env = env_wrapper.make(
-        domain_name=args.domain_name,
-        task_name=args.task_name,
-        seed=args.seed,
-        visualize_reward=False,
-        from_pixels=(args.observation_type == 'pixel' or args.observation_type == 'hybrid'),
-        cameras=args.cameras,
-        height=args.pre_transform_image_size,
-        width=args.pre_transform_image_size,
-        frame_skip=args.action_repeat,
-        reward_type=args.reward_type,
-        change_model=args.change_model
-    )
-
+    # env = env_wrapper.make(
+    #     domain_name=args.domain_name,
+    #     task_name=args.task_name,
+    #     seed=args.seed,
+    #     visualize_reward=False,
+    #     from_pixels=(args.observation_type == 'pixel' or args.observation_type == 'hybrid'),
+    #     cameras=args.cameras,
+    #     height=args.pre_transform_image_size,
+    #     width=args.pre_transform_image_size,
+    #     frame_skip=args.action_repeat,
+    #     reward_type=args.reward_type,
+    #     change_model=args.change_model
+    # )   # the wrpper?
+    env = env_wrapper.make_surrol(args.domain_name, args.seed, visual_obs=False)
+    env._max_episode_steps = 50
+    env.hybrid_state_shape = None
     env.seed(args.seed)
-    if args.special_reset is not None:
-        env.set_special_reset(args.special_reset)
-    if args.demo_special_reset is not None:
-        env.set_special_reset(args.demo_special_reset)
 
-    if args.observation_type == 'hybrid':
-        env.set_hybrid_obs()
+#-------sample demo
+    demo_buffer = []
+    if args.demo_surrol is not None:  # collect demonstrations using hardcoded policy
+        episode_step, done = 0, True
+        state_obs, obs = None, None
+        episode_success = False
+
+        if isinstance(env, utils.FrameStack):
+            original_env = env.env
+        else:
+            original_env = env
+
+        print('Collecting expert trajectories...')
+        t = 0
+        while t < args.demo_samples:
+            if done:
+                episode_step = 0
+                episode_success = False
+                obs = env.reset()
+
+            action = env.get_oracle_action(obs)
+            img = env.render('rgb_array').transpose(2, 0, 1)
+            next_obs, reward, done, info = env.step(action)
+            next_img = env.render('rgb_array').transpose(2, 0, 1)
+            done = info['is_success']
+            if info.get('is_success'):
+                episode_success = True
+
+            # allow infinite bootstrap
+            done_bool = 0 if episode_step + 1 == env._max_episode_steps else float(done)
+
+            demo_buffer.append((img, action, reward, next_img, done_bool))
+
+            obs = next_obs
+            episode_step += 1
+            t += 1
+
+
+        env.reset()
+    print('Starting with replay buffer filled to {}.'.format(len(demo_buffer)))
+    #print('Starting with replay buffer filled to {}.'.format(replay_buffer.idx))
+#-------sample demo
+
+    # if args.special_reset is not None:
+    #     env.set_special_reset(args.special_reset)
+    # if args.demo_special_reset is not None:
+    #     env.set_special_reset(args.demo_special_reset)
+
+    # if args.observation_type == 'hybrid':
+    #     env.set_hybrid_obs()
+
 
     # stack several consecutive frames together
     if args.encoder_type == 'pixel':
+        env = env_wrapper.VisualWrapper(env)
+        env._max_episode_steps = 50
         env = utils.FrameStack(env, k=args.frame_stack)
 
     # make directory
@@ -317,7 +369,7 @@ def main():
 
     print("Working in directory:", args.work_dir)
 
-    video = VideoRecorder(video_dir if args.save_video else None, camera_id=args.cameras[0])
+    video = VideoRecorder(video_dir if args.save_video else None, camera_id=args.cameras[0])    # TODO
 
     with open(os.path.join(args.work_dir, 'args.json'), 'w') as f:
         json.dump(vars(args), f, sort_keys=True, indent=4)
@@ -327,9 +379,9 @@ def main():
     action_shape = env.action_space.shape
 
     if args.encoder_type == 'pixel':
-        cpf = 3 * len(args.cameras)
-        obs_shape = (cpf * args.frame_stack, args.image_size, args.image_size)
-        pre_aug_obs_shape = (cpf * args.frame_stack, args.pre_transform_image_size, args.pre_transform_image_size)
+        cpf = 3 
+        obs_shape = (cpf * args.frame_stack, args.image_size[0], args.image_size[1]) # TODO
+        pre_aug_obs_shape = (cpf * args.frame_stack, args.pre_transform_image_size[0], args.pre_transform_image_size[1])
     else:
         obs_shape = env.observation_space.shape
         pre_aug_obs_shape = obs_shape
@@ -344,74 +396,12 @@ def main():
         hybrid_state_shape=env.hybrid_state_shape,
         load_dir=args.replay_buffer_load_dir
     )
+#--------store
+    for t in range(len(demo_buffer)):
+        img, action, reward, next_img, done_bool = demo_buffer[t]
+        replay_buffer.add(img, action, reward, next_img, done_bool)
+#--------store
 
-    if args.demo_model_dir is not None:  # collect demonstrations using a state-trained expert
-        episode_step, done = 0, True
-        state_obs, obs = None, None
-        episode_success = False
-        original_encoder_type = args.encoder_type
-        args.encoder_type = 'identity'
-
-        if isinstance(env, utils.FrameStack):
-            original_env = env.env
-        else:
-            original_env = env
-
-        expert_agent = make_agent(
-            obs_shape=original_env.observation_space.shape,
-            action_shape=action_shape,
-            args=args,
-            device=device,
-            hybrid_state_shape=env.hybrid_state_shape
-        )
-        args.encoder_type = original_encoder_type
-        expert_agent.load(args.demo_model_dir, args.demo_model_step)
-        print('Collecting expert trajectories...')
-        t = 0
-        while t < args.demo_samples:
-            if done:
-                episode_step = 0
-                episode_success = False
-                if args.demo_special_reset is not None:
-                    env.reset(save_special_steps=True)
-                    special_steps_dict = env.special_reset_save
-                    obs_list = special_steps_dict['obs']
-                    act_list = special_steps_dict['act']
-                    reward_list = special_steps_dict['reward']
-                    for i in range(len(act_list)):
-                        replay_buffer.add(obs_list[i], act_list[i], reward_list[i], obs_list[i+1], False)
-                    episode_step += len(act_list)
-                    t += len(act_list)
-                    obs = obs_list[-1]
-                    state_obs = original_env._get_state_obs()
-                else:
-                    obs = env.reset()
-                    state_obs = original_env._get_state_obs()
-
-            action = expert_agent.sample_action(state_obs)
-            next_obs, reward, done, info = env.step(action)
-            if info.get('is_success'):
-                episode_success = True
-            state_obs = original_env._get_state_obs()
-
-            # allow infinite bootstrap
-            done_bool = 0 if episode_step + 1 == env._max_episode_steps else float(done)
-
-            replay_buffer.add(obs, action, reward, next_obs, done_bool)
-
-            obs = next_obs
-            episode_step += 1
-            t += 1
-
-            if args.success_demo_only and done and not episode_success:
-                t -= episode_step
-                replay_buffer.idx -= episode_step
-
-        env.set_special_reset(args.special_reset)
-
-    print('Starting with replay buffer filled to {}.'.format(replay_buffer.idx))
-
-    # args.init_steps = max(0, args.init_steps - args.replay_buffer_load_pi_t)  # maybe tune this
 
     agent = make_agent(
         obs_shape=obs_shape,
